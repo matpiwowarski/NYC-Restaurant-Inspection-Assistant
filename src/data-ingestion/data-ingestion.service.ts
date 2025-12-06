@@ -1,3 +1,4 @@
+/// <reference path="../types.d.ts" />
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import * as fs from "fs";
