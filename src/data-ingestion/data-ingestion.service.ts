@@ -110,7 +110,10 @@ export class DataIngestionService implements OnModuleInit {
     const results = [];
 
     // Find UNIQUE violation descriptions
-    const uniqueViolations = new Map<string, string>(); // code -> description
+    const uniqueViolations = new Map<
+      string,
+      { code: string; description: string }
+    >(); // uniqueKey -> { code, description }
 
     return new Promise((resolve, reject) => {
       fs.createReadStream(filePath)
@@ -122,7 +125,11 @@ export class DataIngestionService implements OnModuleInit {
           const description = data["VIOLATION DESCRIPTION"];
 
           if (code && description) {
-            uniqueViolations.set(code, description);
+            // Create a unique key for deduplication based on both fields
+            const key = `${code}|${description}`;
+            if (!uniqueViolations.has(key)) {
+              uniqueViolations.set(key, { code, description });
+            }
           }
         })
         .on("end", async () => {
@@ -131,7 +138,7 @@ export class DataIngestionService implements OnModuleInit {
           );
 
           let count = 0;
-          for (const [code, description] of uniqueViolations) {
+          for (const { code, description } of uniqueViolations.values()) {
             const embedding = await this.generateEmbedding(description);
 
             // Using composite key logic or just upserting by code+description unique constraint if possible
