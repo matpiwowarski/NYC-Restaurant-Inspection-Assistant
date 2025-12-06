@@ -67,7 +67,7 @@ export class DataIngestionService implements OnModuleInit {
       `Identified ${uniqueCodes.length} unique article codes (headers) from text scanning.`
     );
 
-    // 2. Build a specific Regex to split ONLY on these known codes.
+    // 3. Build a specific Regex to split ONLY on these known codes.
     // Strictly look for a newline followed by § and one of the identified codes.
     // This ensures splitting at the actual header, not at a random reference.
     const codesPattern = uniqueCodes
