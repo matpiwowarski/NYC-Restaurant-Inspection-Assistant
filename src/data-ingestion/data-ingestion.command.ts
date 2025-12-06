@@ -1,5 +1,6 @@
 import { Command, CommandRunner } from "nest-commander";
-import { DataIngestionService } from "./data-ingestion.service";
+import { HealthCodeIngestionService } from "./health-code-ingestion.service";
+import { ViolationIngestionService } from "./violation-ingestion.service";
 import * as path from "path";
 
 @Command({
@@ -7,7 +8,10 @@ import * as path from "path";
   description: "Ingest data from PDF and CSV files into MongoDB",
 })
 export class DataIngestionCommand extends CommandRunner {
-  constructor(private readonly dataIngestionService: DataIngestionService) {
+  constructor(
+    private readonly healthCodeIngestionService: HealthCodeIngestionService,
+    private readonly violationIngestionService: ViolationIngestionService
+  ) {
     super();
   }
 
@@ -21,7 +25,7 @@ export class DataIngestionCommand extends CommandRunner {
 
     console.log("Step 1/2: Ingesting Health Code...");
     try {
-      await this.dataIngestionService.ingestHealthCode(pdfPath);
+      await this.healthCodeIngestionService.ingestHealthCode(pdfPath);
       console.log("✅ Health Code ingestion finished.");
     } catch (e) {
       console.error(
@@ -32,7 +36,7 @@ export class DataIngestionCommand extends CommandRunner {
 
     console.log("Step 2/2: Ingesting Inspections...");
     try {
-      await this.dataIngestionService.ingestInspections(csvPath);
+      await this.violationIngestionService.ingestInspections(csvPath);
       console.log("✅ Inspections ingestion finished.");
     } catch (e) {
       console.error("❌ Failed to ingest inspections:", e.message);
