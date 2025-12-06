@@ -1,11 +1,13 @@
 # NYC Restaurant Inspection Assistant
 
 ## Overview
+
 A tool designed to flag discrepancies between NYC restaurant inspection violation descriptions and the actual Health Code.
 The system parses inspection data (CSV) and the Health Code (PDF), stores them in MongoDB, and uses vector search/semantic similarity to verify if cited violations actually exist in the current code.
 
 ## Implementation Plan
-1.  **Infrastructure**: 
+
+1.  **Infrastructure**:
     - MongoDB with Replica Set (via Docker)
     - NestJS application
     - Prisma ORM (MongoDB provider)
@@ -17,6 +19,7 @@ The system parses inspection data (CSV) and the Health Code (PDF), stores them i
     - Flagging mismatches.
 
 ## Prerequisites
+
 - Node.js (v20+)
 - Docker & Docker Compose
 - pnpm
@@ -24,19 +27,35 @@ The system parses inspection data (CSV) and the Health Code (PDF), stores them i
 ## Setup
 
 1.  **Start Database**
+
     ```bash
+    # Starts MongoDB with Replica Set configuration
     docker compose up -d
     ```
 
 2.  **Install Dependencies**
+
     ```bash
     pnpm install
     ```
 
-3.  **Setup Environment**
-    Ensure `.env` contains your MongoDB connection string (default in docker-compose is `mongodb://localhost:27017/nyc_inspector?replicaSet=rs0`).
+3.  **Generate Database Client**
 
-4.  **Run Application**
+    ```bash
+    # Required after installing dependencies or changing schema.prisma
+    npx prisma generate
+    ```
+
+4.  **Setup Environment**
+    Ensure `.env` contains your MongoDB connection string.
+    Example in `.env.dist`:
+
+    ```
+    DATABASE_URL="mongodb://localhost:27017/nyc_inspector?replicaSet=rs0"
+    ```
+
+5.  **Run Application**
+
     ```bash
     # development
     pnpm run start
@@ -46,6 +65,7 @@ The system parses inspection data (CSV) and the Health Code (PDF), stores them i
     ```
 
 ## Project Structure
+
 - `src/`: NestJS source code
 - `data/`: Place your `health_code.pdf` and `inspections.csv` here.
 - `prisma/`: Database schema and configuration.
