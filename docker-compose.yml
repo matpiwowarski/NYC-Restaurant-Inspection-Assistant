@@ -6,7 +6,11 @@ services:
     container_name: nyc_inspector_mongo
     ports:
       - "27017:27017"
-    command: ["--replSet", "rs0", "--bind_ip_all"]
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    healthcheck:
+      test: mongosh --eval "rs.initiate({_id:'rs0', members:[{_id:0, host:'localhost:27017'}]})" || mongosh --eval "rs.status()"
+      interval: 10s
+      start_period: 5s
     volumes:
       - mongo_data:/data/db
 
