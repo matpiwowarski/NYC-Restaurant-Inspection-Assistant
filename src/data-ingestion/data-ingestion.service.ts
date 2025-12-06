@@ -107,7 +107,6 @@ export class DataIngestionService implements OnModuleInit {
 
   async ingestInspections(filePath: string) {
     this.logger.log(`Parsing Inspections CSV from: ${filePath}`);
-    const results = [];
 
     // Find UNIQUE violation descriptions
     const uniqueViolations = new Map<
@@ -115,51 +114,46 @@ export class DataIngestionService implements OnModuleInit {
       { code: string; description: string }
     >(); // uniqueKey -> { code, description }
 
-    return new Promise((resolve, reject) => {
-      fs.createReadStream(filePath)
-        .pipe(csv())
-        .on("data", (data: any) => {
-          // Adjust field names based on actual CSV header.
-          // Assuming "VIOLATION CODE" and "VIOLATION DESCRIPTION" based on NYC Open Data
-          const code = data["VIOLATION CODE"];
-          const description = data["VIOLATION DESCRIPTION"];
+    const stream = fs.createReadStream(filePath).pipe(csv());
 
-          if (code && description) {
-            // Create a unique key for deduplication based on both fields
-            const key = `${code}|${description}`;
-            if (!uniqueViolations.has(key)) {
-              uniqueViolations.set(key, { code, description });
-            }
-          }
-        })
-        .on("end", async () => {
-          this.logger.log(
-            `Found ${uniqueViolations.size} unique violations. Generating embeddings...`
-          );
+    for await (const data of stream) {
+      // Adjust field names based on actual CSV header.
+      // Assuming "VIOLATION CODE" and "VIOLATION DESCRIPTION" based on NYC Open Data
+      const code = data["VIOLATION CODE"];
+      const description = data["VIOLATION DESCRIPTION"];
 
-          let count = 0;
-          for (const { code, description } of uniqueViolations.values()) {
-            const embedding = await this.generateEmbedding(description);
+      if (code && description) {
+        // Create a unique key for deduplication based on both fields
+        const key = `${code}|${description}`;
+        if (!uniqueViolations.has(key)) {
+          uniqueViolations.set(key, { code, description });
+        }
+      }
+    }
 
-            // Using composite key logic or just upserting by code+description unique constraint if possible
-            // However, our schema currently only has Code unique in HealthArticle, but Violation has @@unique([code, description])
+    this.logger.log(
+      `Found ${uniqueViolations.size} unique violations. Generating embeddings...`
+    );
 
-            await this.prisma.violation.upsert({
-              where: {
-                code_description: { code, description },
-              },
-              update: { embedding }, // Update embedding if exists
-              create: { code, description, embedding },
-            });
-            count++;
-            if (count % 10 === 0)
-              this.logger.log(`Processed ${count} violations...`);
-          }
+    let count = 0;
+    for (const { code, description } of uniqueViolations.values()) {
+      const embedding = await this.generateEmbedding(description);
 
-          this.logger.log(`Ingestion complete. Processed ${count} violations.`);
-          resolve(true);
-        })
-        .on("error", (err: any) => reject(err));
-    });
+      // Using composite key logic or just upserting by code+description unique constraint if possible
+      // However, our schema currently only has Code unique in HealthArticle, but Violation has @@unique([code, description])
+
+      await this.prisma.violation.upsert({
+        where: {
+          code_description: { code, description },
+        },
+        update: { embedding }, // Update embedding if exists
+        create: { code, description, embedding },
+      });
+      count++;
+      if (count % 10 === 0) this.logger.log(`Processed ${count} violations...`);
+    }
+
+    this.logger.log(`Ingestion complete. Processed ${count} violations.`);
+    return true;
   }
 }
