@@ -41,24 +41,61 @@ export class DataIngestionService implements OnModuleInit {
     const dataBuffer = fs.readFileSync(filePath);
     const data = await pdf(dataBuffer);
 
-    // Simple splitting strategy: Split by "§" (Section symbol) as it usually denotes articles in legal texts
-    // This is a naive heuristic; might need adjustment based on actual PDF content.
-    const sections = data.text
-      .split("§")
-      .filter((s: string) => s.trim().length > 20);
+    // 1. Extract TOC (Table of Contents) to identify valid Article Codes.
+    // We assume the TOC is at the beginning and lists articles in the format "§81.XX Title".
+    // We strictly look for the pattern "§{Digits}.{Digits}" (e.g., §81.04).
+    const tocRegex = /§(\d+\.\d+)/g;
+    const tocMatches = [...data.text.matchAll(tocRegex)];
+
+    // Extract unique codes from the first few matches.
+    // In a full PDF, these codes might appear many times. The TOC is usually the first cluster.
+    // We'll trust all "§XX.XX" patterns found as potential split points,
+    // BUT we will verify they act as Headers (followed by title/newline) later.
+    const allCodes = tocMatches.map((m) => m[1]);
+    const uniqueCodes = Array.from(new Set(allCodes));
 
     this.logger.log(
-      `Found ${sections.length} potential articles. Processing...`
+      `Identified ${uniqueCodes.length} unique article codes from text scanning.`
+    );
+
+    // 2. Build a specific Regex to split ONLY on these known codes.
+    // Pattern: Lookahead for "§" followed by one of our codes, ensuring it starts a line or block.
+    // We escape the dots in codes.
+    const codesPattern = uniqueCodes
+      .map((c) => c.replace(".", "\\."))
+      .join("|");
+    // Regex explanation:
+    // (?=...) is a lookahead (don't consume the split delimiter, just find the position)
+    // §\s*(${codesPattern}) matches §81.01, § 81.04 etc.
+    const splitRegex = new RegExp(`(?=§\\s*(?:${codesPattern}))`, "g");
+
+    // Split the entire text
+    const distinctSections = data.text.split(splitRegex);
+
+    // Filter out chunks that are too short to be real articles (e.g. noise, intro text)
+    // And ensure the chunk actually STARTS with the expected pattern (to confirm it's an article content)
+    const validSections = distinctSections.filter((s) => {
+      const trimmed = s.trim();
+      // Must start with § and be reasonably long
+      return trimmed.startsWith("§") && trimmed.length > 50;
+    });
+
+    this.logger.log(
+      `Found ${validSections.length} valid articles after splitting. Processing...`
     );
 
     let count = 0;
-    for (const sectionText of sections) {
-      // Extract a code (e.g., "81.09") from the start of the text
-      const codeMatch = sectionText.match(/^(\s*\d+\.\d+[a-z]?)/);
-      const code = codeMatch ? codeMatch[1].trim() : `UNKNOWN_${count}`;
+    for (const sectionText of validSections) {
+      // Extract code again from the chunk itself
+      const codeMatch = sectionText.match(/^§\s*(\d+\.\d+)/);
+      if (!codeMatch) continue;
 
-      // Clean text
-      const cleanText = `§${sectionText}`.replace(/\s+/g, " ").trim();
+      const code = codeMatch[1];
+
+      // Clean text:
+      // 1. Remove page numbers (isolated digits) if any
+      // 2. Collapse whitespace
+      const cleanText = sectionText.replace(/\s+/g, " ").trim();
 
       const embedding = await this.generateEmbedding(cleanText);
 
