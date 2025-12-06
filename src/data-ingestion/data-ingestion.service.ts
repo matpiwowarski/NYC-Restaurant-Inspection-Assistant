@@ -41,10 +41,22 @@ export class DataIngestionService implements OnModuleInit {
     const dataBuffer = fs.readFileSync(filePath);
     const data = await pdf(dataBuffer);
 
-    // 1. Identify valid Article Codes by scanning the text.
-    // We look for patterns like "§81.04" but ONLY when they appear at the start of a line.
-    // This avoids capturing internal references like "(see §81.04)" which are not section headers.
-    const headerRegex = /(?:^|\n)§(\d+\.\d+)/g;
+    // 1. Detect the main Article Number from the document header (e.g. "ARTICLE 81")
+    const articleMatch = data.text.match(/ARTICLE\s+(\d+)/i);
+    if (!articleMatch) {
+      this.logger.warn(
+        "Could not detect 'ARTICLE {number}' header. Defaulting to broad scanning."
+      );
+    }
+    const articleNumber = articleMatch ? articleMatch[1] : "\\d+"; // Default to any digits if not found
+    this.logger.log(
+      `Detected Document Context: ARTICLE ${articleNumber === "\\d+" ? "(Unknown)" : articleNumber}`
+    );
+
+    // 2. Identify valid Article Codes by scanning the text.
+    // We strictly look for patterns like "§{ArticleNumber}.XX" appearing at the start of a line.
+    // This dynamically filters out references to other Articles (e.g. "see §14.05") if we are processing Article 81.
+    const headerRegex = new RegExp(`(?:^|\\n)§(${articleNumber}\\.\\d+)`, "g");
     const headerMatches = [...data.text.matchAll(headerRegex)];
 
     // Extract unique codes found at line starts.
