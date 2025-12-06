@@ -54,8 +54,8 @@ export class DataIngestionService implements OnModuleInit {
     );
 
     // 2. Identify valid Article Codes by scanning the text.
-    // We strictly look for patterns like "§{ArticleNumber}.XX" appearing at the start of a line.
-    // This dynamically filters out references to other Articles (e.g. "see §14.05") if we are processing Article 81.
+    // Strictly look for patterns like "§{ArticleNumber}.XX" appearing at the start of a line.
+    // This dynamically filters out references to other Articles (e.g. "see §14.05") if processing Article 81.
     const headerRegex = new RegExp(`(?:^|\\n)§(${articleNumber}\\.\\d+)`, "g");
     const headerMatches = [...data.text.matchAll(headerRegex)];
 
@@ -68,8 +68,8 @@ export class DataIngestionService implements OnModuleInit {
     );
 
     // 2. Build a specific Regex to split ONLY on these known codes.
-    // We strictly look for a newline followed by § and one of our codes.
-    // This ensures we split at the actual header, not at a random reference.
+    // Strictly look for a newline followed by § and one of the identified codes.
+    // This ensures splitting at the actual header, not at a random reference.
     const codesPattern = uniqueCodes
       .map((c) => c.replace(".", "\\."))
       .join("|");
@@ -123,7 +123,7 @@ export class DataIngestionService implements OnModuleInit {
     this.logger.log(`Parsing Inspections CSV from: ${filePath}`);
     const results = [];
 
-    // We want to find UNIQUE violation descriptions
+    // Find UNIQUE violation descriptions
     const uniqueViolations = new Map<string, string>(); // code -> description
 
     return new Promise((resolve, reject) => {

@@ -14,6 +14,7 @@ Before running the application, you must load the data into MongoDB.
    ```bash
    pnpm run load-data
    ```
+3. **Verify Data**: I recommend using [MongoDB Compass](https://www.mongodb.com/products/tools/compass) to connect to your local database (`mongodb://localhost:27017/nyc_inspector`) and verify that the `HealthCodeArticle` and `Violation` collections have been populated correctly.
 
 ## Implementation Plan
 
