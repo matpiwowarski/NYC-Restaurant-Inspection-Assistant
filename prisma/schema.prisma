@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model HealthCodeArticle {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  code      String   @unique
+  text      String
+  embedding Float[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Violation {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  code        String
+  description String
+  embedding   Float[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([code, description])
+}
