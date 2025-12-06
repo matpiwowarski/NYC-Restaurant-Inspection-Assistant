@@ -5,6 +5,16 @@
 A tool designed to flag discrepancies between NYC restaurant inspection violation descriptions and the actual Health Code.
 The system parses inspection data (CSV) and the Health Code (PDF), stores them in MongoDB, and uses vector search/semantic similarity to verify if cited violations actually exist in the current code.
 
+### Prerequisites for Data Loading
+
+Before running the application, you must load the data into MongoDB.
+
+1. Place `health_code.pdf` and `inspections.csv` in the `data/` directory.
+2. Run the load data command:
+   ```bash
+   pnpm run load-data
+   ```
+
 ## Implementation Plan
 
 1.  **Infrastructure**:
