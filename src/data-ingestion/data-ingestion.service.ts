@@ -4,7 +4,6 @@ import { PrismaService } from "../prisma/prisma.service";
 import * as fs from "fs";
 import pdf from "pdf-parse";
 import csv from "csv-parser";
-import { pipeline } from "@xenova/transformers";
 
 @Injectable()
 export class DataIngestionService implements OnModuleInit {
@@ -15,6 +14,9 @@ export class DataIngestionService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log("Initializing Feature Extraction Model...");
+    // Dynamic import for ESM-only package
+    const { pipeline } = await import("@xenova/transformers");
+
     // Use a small, efficient model suitable for semantic similarity
     this.extractor = await pipeline(
       "feature-extraction",
