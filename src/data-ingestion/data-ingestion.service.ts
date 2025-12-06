@@ -41,33 +41,31 @@ export class DataIngestionService implements OnModuleInit {
     const dataBuffer = fs.readFileSync(filePath);
     const data = await pdf(dataBuffer);
 
-    // 1. Extract TOC (Table of Contents) to identify valid Article Codes.
-    // We assume the TOC is at the beginning and lists articles in the format "§81.XX Title".
-    // We strictly look for the pattern "§{Digits}.{Digits}" (e.g., §81.04).
-    const tocRegex = /§(\d+\.\d+)/g;
-    const tocMatches = [...data.text.matchAll(tocRegex)];
+    // 1. Identify valid Article Codes by scanning the text.
+    // We look for patterns like "§81.04" but ONLY when they appear at the start of a line.
+    // This avoids capturing internal references like "(see §81.04)" which are not section headers.
+    const headerRegex = /(?:^|\n)§(\d+\.\d+)/g;
+    const headerMatches = [...data.text.matchAll(headerRegex)];
 
-    // Extract unique codes from the first few matches.
-    // In a full PDF, these codes might appear many times. The TOC is usually the first cluster.
-    // We'll trust all "§XX.XX" patterns found as potential split points,
-    // BUT we will verify they act as Headers (followed by title/newline) later.
-    const allCodes = tocMatches.map((m) => m[1]);
+    // Extract unique codes found at line starts.
+    const allCodes = headerMatches.map((m) => m[1]);
     const uniqueCodes = Array.from(new Set(allCodes));
 
     this.logger.log(
-      `Identified ${uniqueCodes.length} unique article codes from text scanning.`
+      `Identified ${uniqueCodes.length} unique article codes (headers) from text scanning.`
     );
 
     // 2. Build a specific Regex to split ONLY on these known codes.
-    // Pattern: Lookahead for "§" followed by one of our codes, ensuring it starts a line or block.
-    // We escape the dots in codes.
+    // We strictly look for a newline followed by § and one of our codes.
+    // This ensures we split at the actual header, not at a random reference.
     const codesPattern = uniqueCodes
       .map((c) => c.replace(".", "\\."))
       .join("|");
+
     // Regex explanation:
-    // (?=...) is a lookahead (don't consume the split delimiter, just find the position)
-    // §\s*(${codesPattern}) matches §81.01, § 81.04 etc.
-    const splitRegex = new RegExp(`(?=§\\s*(?:${codesPattern}))`, "g");
+    // (?:^|\n) matches start of file OR a newline (consumed as separator)
+    // (?=§...) lookahead to ensure we don't consume the header itself
+    const splitRegex = new RegExp(`(?:^|\\n)(?=§\\s*(?:${codesPattern}))`, "g");
 
     // Split the entire text
     const distinctSections = data.text.split(splitRegex);
