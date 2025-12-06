@@ -61,31 +61,22 @@ export class DataIngestionService implements OnModuleInit {
     // Split the entire text
     const distinctSections = data.text.split(splitRegex);
 
-    // Verify valid articles after splitting.
-    const validSections = distinctSections.filter((s) => {
-      const trimmed = s.trim();
-      // Must start with §
-      return trimmed.startsWith("§");
-    });
-
-    this.logger.log(
-      `Found ${validSections.length} potential text blocks starting with §. Deduplicating...`
-    );
-
     // Map to store unique articles by code.
     // If a code appears multiple times (e.g. in TOC and Body), keep the longest text.
     const articlesMap = new Map<string, string>();
 
-    for (const sectionText of validSections) {
-      // Extract code again from the chunk itself
-      const codeMatch = sectionText.match(/^§\s*(\d+\.\d+)/);
+    for (const rawSection of distinctSections) {
+      // Clean text immediately: condense whitespace and trim
+      const cleanText = rawSection.replace(/\s+/g, " ").trim();
+
+      // Must start with § to be a valid article
+      if (!cleanText.startsWith("§")) continue;
+
+      // Extract code from the clean text
+      const codeMatch = cleanText.match(/^§\s*(\d+\.\d+)/);
       if (!codeMatch) continue;
 
       const code = codeMatch[1];
-      // Clean text:
-      // 1. Remove page numbers (isolated digits) if any
-      // 2. Collapse whitespace
-      const cleanText = sectionText.replace(/\s+/g, " ").trim();
 
       if (articlesMap.has(code)) {
         // If this code already exists, keep the longer version (e.g. real article vs TOC summary)
