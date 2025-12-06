@@ -82,37 +82,53 @@ export class DataIngestionService implements OnModuleInit {
     // Split the entire text
     const distinctSections = data.text.split(splitRegex);
 
-    // Filter out chunks that are too short to be real articles (e.g. noise, intro text)
-    // And ensure the chunk actually STARTS with the expected pattern (to confirm it's an article content)
+    // Verify valid articles after splitting.
     const validSections = distinctSections.filter((s) => {
       const trimmed = s.trim();
-      // Must start with § and be reasonably long
-      return trimmed.startsWith("§") && trimmed.length > 50;
+      // Must start with §
+      return trimmed.startsWith("§");
     });
 
     this.logger.log(
-      `Found ${validSections.length} valid articles after splitting. Processing...`
+      `Found ${validSections.length} potential text blocks starting with §. Deduplicating...`
     );
 
-    let count = 0;
+    // Map to store unique articles by code.
+    // If a code appears multiple times (e.g. in TOC and Body), keep the longest text.
+    const articlesMap = new Map<string, string>();
+
     for (const sectionText of validSections) {
       // Extract code again from the chunk itself
       const codeMatch = sectionText.match(/^§\s*(\d+\.\d+)/);
       if (!codeMatch) continue;
 
       const code = codeMatch[1];
-
       // Clean text:
       // 1. Remove page numbers (isolated digits) if any
       // 2. Collapse whitespace
       const cleanText = sectionText.replace(/\s+/g, " ").trim();
 
-      const embedding = await this.generateEmbedding(cleanText);
+      if (articlesMap.has(code)) {
+        // If this code already exists, keep the longer version (e.g. real article vs TOC summary)
+        const existing = articlesMap.get(code) || "";
+        if (cleanText.length > existing.length) {
+          articlesMap.set(code, cleanText);
+        }
+      } else {
+        articlesMap.set(code, cleanText);
+      }
+    }
+
+    this.logger.log(`Final unique articles to process: ${articlesMap.size}`);
+
+    let count = 0;
+    for (const [code, text] of articlesMap) {
+      const embedding = await this.generateEmbedding(text);
 
       await this.prisma.healthCodeArticle.upsert({
         where: { code },
-        update: { text: cleanText, embedding },
-        create: { code, text: cleanText, embedding },
+        update: { text, embedding },
+        create: { code, text, embedding },
       });
       count++;
     }
