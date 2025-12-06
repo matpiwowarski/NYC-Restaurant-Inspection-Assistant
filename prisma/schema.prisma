@@ -7,13 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model HealthCodeArticle {
+model HealthCode {
+  id        String            @id @default(auto()) @map("_id") @db.ObjectId
+  code      String            @unique
+  title     String?
+  fullText  String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  chunks    HealthCodeChunk[]
+}
+
+model HealthCodeChunk {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  code      String   @unique
-  text      String
+  content   String
   embedding Float[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  
+  healthCodeId String     @db.ObjectId
+  healthCode   HealthCode @relation(fields: [healthCodeId], references: [id])
 }
 
 model Violation {
