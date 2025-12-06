@@ -1,10 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import * as fs from "fs";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require("pdf-parse");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const csv = require("csv-parser");
+import pdf from "pdf-parse";
+import csv from "csv-parser";
 import { pipeline } from "@xenova/transformers";
 
 @Injectable()
@@ -42,7 +40,9 @@ export class DataIngestionService implements OnModuleInit {
 
     // Simple splitting strategy: Split by "§" (Section symbol) as it usually denotes articles in legal texts
     // This is a naive heuristic; might need adjustment based on actual PDF content.
-    const sections = data.text.split("§").filter((s) => s.trim().length > 20);
+    const sections = data.text
+      .split("§")
+      .filter((s: string) => s.trim().length > 20);
 
     this.logger.log(
       `Found ${sections.length} potential articles. Processing...`
