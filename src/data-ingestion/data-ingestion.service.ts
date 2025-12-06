@@ -53,31 +53,10 @@ export class DataIngestionService implements OnModuleInit {
       `Detected Document Context: ARTICLE ${articleNumber === "\\d+" ? "(Unknown)" : articleNumber}`
     );
 
-    // 2. Identify valid Article Codes by scanning the text.
+    // 2. Split text based on Article Codes.
     // Strictly look for patterns like "§{ArticleNumber}.XX" appearing at the start of a line.
-    // This dynamically filters out references to other Articles (e.g. "see §14.05") if processing Article 81.
-    const headerRegex = new RegExp(`(?:^|\\n)§(${articleNumber}\\.\\d+)`, "g");
-    const headerMatches = [...data.text.matchAll(headerRegex)];
-
-    // Extract unique codes found at line starts.
-    const allCodes = headerMatches.map((m) => m[1]);
-    const uniqueCodes = Array.from(new Set(allCodes));
-
-    this.logger.log(
-      `Identified ${uniqueCodes.length} unique article codes (headers) from text scanning.`
-    );
-
-    // 3. Build a specific Regex to split ONLY on these known codes.
-    // Strictly look for a newline followed by § and one of the identified codes.
-    // This ensures splitting at the actual header, not at a random reference.
-    const codesPattern = uniqueCodes
-      .map((c) => c.replace(".", "\\."))
-      .join("|");
-
-    // Regex explanation:
-    // (?:^|\n) matches start of file OR a newline (consumed as separator)
-    // (?=§...) lookahead to ensure we don't consume the header itself
-    const splitRegex = new RegExp(`(?:^|\\n)(?=§\\s*(?:${codesPattern}))`, "g");
+    // Use a Lookahead (?=...) to split *before* the pattern, keeping the header in the new chunk.
+    const splitRegex = new RegExp(`(?=(?:^|\\n)§${articleNumber}\\.\\d+)`, "g");
 
     // Split the entire text
     const distinctSections = data.text.split(splitRegex);
