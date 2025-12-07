@@ -5,6 +5,23 @@
 A tool designed to flag discrepancies between NYC restaurant inspection violation descriptions and the actual Health Code.
 The system parses inspection data (CSV) and the Health Code (PDF), stores them in MongoDB, and uses vector search/semantic similarity to verify if cited violations actually exist in the current code.
 
+## Implementation Context
+
+### Why this scope?
+
+I prioritized **Database Design** and **Advanced Data Ingestion** because I believe a solid data structure is the decisive factor for the entire system's performance and accuracy.
+
+**Forward-Looking Schema**:
+The database is designed to support the core analysis logic immediately. By isolating individual sentences (chunks) and linking them to their parent Articles (Code, Title), we can efficiently query the most relevant legal justification for any given violation. This makes the "Verification" step—checking if a violation exists in the code—straightforward.
+
+**Semantic Search**:
+I chose this over simple text search because of the vocabulary mismatch. Inspectors use informal descriptions (e.g. "mice present") that may not overlap with the formal legal text (e.g. "conditions conducive to pests"). Semantic search captures the meaning rather than just matching characters.
+
+My focus was on solving the complex data engineering challenges:
+
+- **Noise Reduction**: Distilled a massive inspection CSV file down to just ~231 unique, meaningful violation descriptions.
+- **Resilient Parsing**: Built a custom parser for the `Health Code` PDF that handles nested legal structures, inconsistent formatting, human errors, and "floating" headers to ensure clean, semantic chunks for embedding.
+
 ## Roadmap & Status
 
 ### ✅ Completed
