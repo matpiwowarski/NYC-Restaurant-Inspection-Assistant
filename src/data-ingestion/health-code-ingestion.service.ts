@@ -31,107 +31,79 @@ export class HealthCodeIngestionService {
       `Detected Document Context: ARTICLE ${articleNumber === "\\d+" ? "(Unknown)" : articleNumber}`
     );
 
-    // 2. Split text based on Article Codes.
-    // Strictly look for patterns like "§{ArticleNumber}.XX" appearing at the start of a line.
-    const splitRegex = new RegExp(`(?=(?:^|\\n)§${articleNumber}\\.\\d+)`, "g");
+    // 2. Flatten Text Strategy (User Request)
+    // Remove all newlines and extra spaces to treat the document as a continuous stream.
+    const flattenedText = data.text.replace(/\s+/g, " ").trim();
 
-    const distinctSections = data.text.split(splitRegex);
+    // 3. Split based on Article Codes
+    // Pattern: Lookahead for "§ {ArticleNumber}.XX" (allowing optional space after §)
+    const splitRegex = new RegExp(`(?=§\\s*${articleNumber}\\.\\d+)`, "g");
+    const distinctSections = flattenedText.split(splitRegex);
 
-    const articlesMap = new Map<
-      string,
-      { fullText: string; title: string | null }
-    >();
+    this.logger.log(`Found ${distinctSections.length} potential sections.`);
 
-    for (const rawSection of distinctSections) {
-      // CLEANING STRATEGY:
-      // We want to normalize whitespace but PRESERVE newlines to allow paragraph chunking.
-      // 1. Replace multiple spaces/tabs with single space.
-      // 2. Trim lines.
-      // 3. Keep single newlines for structure (or double for paragraphs).
+    const validArticles: {
+      code: string;
+      title: string;
+      fullText: string;
+    }[] = [];
 
-      const cleanText = rawSection
-        .split("\n")
-        .map((line: string) => line.trim())
-        .filter((line: string) => line.length > 0)
-        .join("\n");
+    for (const section of distinctSections) {
+      if (!section.trim().startsWith("§")) continue;
 
-      // Must start with § to be a valid article
-      if (!cleanText.startsWith("§")) continue;
-
-      // Extract code from the clean text
-      const codeMatch = cleanText.match(/^§\s*(\d+\.\d+)/);
+      // Extract Code
+      const codeMatch = section.match(/^§\s*(\d+\.\d+)/);
       if (!codeMatch) continue;
 
-      const code = codeMatch[1]; // e.g. "81.01"
+      const code = codeMatch[1];
 
-      // Deduplication & TOC Strategy:
-      // First occurrence is usually in the Table of Contents (TOC). We trust this Title.
-      // Subsequent occurrences are the Article Body. We use this for fullText.
+      // We want to separate Title and Body.
+      // Strategy: Title is everything from the code end up to the FIRST period.
+      // Body is everything after that period.
 
-      if (!articlesMap.has(code)) {
-        // --- TOC OCCURRENCE ---
-        // Extract Title from TOC line e.g. "§ 81.01 Scope."
-        // We want to capture the FULL title even if it spans multiple lines.
+      const afterCodeIndex = codeMatch[0].length;
+      const restOfText = section.substring(afterCodeIndex).trim();
 
-        let title: string | null = null;
+      const firstDotIndex = restOfText.indexOf(".");
 
-        // 1. Create a regex to match the Code prefix (e.g. "§ 81.05") at the start
-        const codeRegex = new RegExp(`^§\\s*${code.replace(".", "\\.")}\\s*`);
+      let title = "";
+      let body = "";
 
-        if (codeRegex.test(cleanText)) {
-          // 2. Remove the code prefix to get the Title part
-          let titleText = cleanText.replace(codeRegex, "").trim();
-
-          // 3. Join lines into a single string (replace newlines with space)
-          titleText = titleText.replace(/\n/g, " ");
-
-          // 4. Collapse multiple spaces
-          titleText = titleText.replace(/\s+/g, " ");
-
-          // 5. Remove trailing dot if present
-          if (titleText.endsWith(".")) {
-            titleText = titleText.slice(0, -1);
-          }
-
-          title = titleText.trim();
-        }
-
-        // Initialize with Title from TOC, empty Body
-        articlesMap.set(code, { fullText: "", title });
+      if (firstDotIndex === -1) {
+        // Fallback: No dot found, entire text is title (likely a TOC entry or misformatted)
+        title = restOfText;
+        body = "";
       } else {
-        // --- BODY OCCURRENCE ---
-        // We already have the entry from TOC. Now we populate fullText.
-        // We want to STRIP the Header (Code + Title) from the body text.
-        // The body usually starts with: § 81.01 Scope.\nActual content...
+        title = restOfText.substring(0, firstDotIndex).trim();
+        body = restOfText.substring(firstDotIndex + 1).trim();
+      }
 
-        // Find where the first line ends, or the header ends.
-        // We'll assume the header is the first paragraph/line that matches the Code pattern.
-        let bodyText = cleanText;
+      // Filter out empty bodies if they are just TOC entries?
+      // Actually, if we have duplicate codes (one TOC, one Real), we want the Real one (with Body).
+      // Or we want to merge?
+      // User's request implied simplicity. Let's process valid ones.
 
-        // Regex to match the start "§ 81.01 [Title...]" up to the first newline or significant break
-        // Actually, since we cleaned text, we can just split by newline and drop the first line if it looks like a header.
-        const lines = cleanText.split("\n");
-        if (lines.length > 0 && lines[0].includes(code)) {
-          // Drop the first line (the header)
-          bodyText = lines.slice(1).join("\n").trim();
+      // Deduplication: prefer entry with longer body (likely the real article, not TOC)
+      const existingIndex = validArticles.findIndex((a) => a.code === code);
+      if (existingIndex !== -1) {
+        if (body.length > validArticles[existingIndex].fullText.length) {
+          // Replace with this one as it seems to be the main content
+          validArticles[existingIndex] = { code, title, fullText: body };
         }
-
-        const existing = articlesMap.get(code)!;
-        // If we found a body that is longer than what we have (in case of dupes), save it.
-        // Note: existing.fullText starts empty from TOC step.
-        if (bodyText.length > existing.fullText.length) {
-          articlesMap.set(code, { ...existing, fullText: bodyText });
-        }
+      } else {
+        validArticles.push({ code, title, fullText: body });
       }
     }
 
-    this.logger.log(`Final unique articles to process: ${articlesMap.size}`);
+    this.logger.log(
+      `Final unique articles to process: ${validArticles.length}`
+    );
 
     let count = 0;
     let chunksCount = 0;
 
-    for (const [code, { fullText, title }] of articlesMap) {
-      // 3. Create Parent Article
+    for (const { code, fullText, title } of validArticles) {
+      // 4. Create Parent Article
       // Title extraction is best-effort.
       // We store fullText for reference.
       const healthCode = await this.prisma.healthCode.upsert({
