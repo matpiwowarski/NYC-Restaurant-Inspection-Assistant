@@ -121,7 +121,7 @@ export class HealthCodeIngestionService {
         },
       });
 
-      // 4. Create Chunks
+      // 5. Create Chunks
       const rawChunks = fullText.split("\n");
       // Group small lines together to form meaningful chunks (~200+ chars)
       const mergedChunks: string[] = [];
@@ -138,7 +138,7 @@ export class HealthCodeIngestionService {
       if (currentChunk) mergedChunks.push(currentChunk);
 
       // Delete existing chunks to avoid duplication on re-run (or use checksums)
-      // Ideally we'd sync, but deleting old chunks for this Article is safer/easier for now.
+      // Ideally we'd sync, but deleting old chunks for this Section is safer/easier for now.
       await this.prisma.healthCodeChunk.deleteMany({
         where: { healthCodeId: healthCode.id },
       });
