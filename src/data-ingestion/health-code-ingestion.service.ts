@@ -71,25 +71,29 @@ export class HealthCodeIngestionService {
       if (!articlesMap.has(code)) {
         // --- TOC OCCURRENCE ---
         // Extract Title from TOC line e.g. "§ 81.01 Scope."
-        // We want "Scope" (no dot)
-        let title: string | null = null;
-        const sameLineMatch = cleanText.match(/^§\s*\d+\.\d+\s+(.+)$/m);
+        // We want to capture the FULL title even if it spans multiple lines.
 
-        if (sameLineMatch) {
-          title = sameLineMatch[1].trim();
-          // Remove trailing dot if present
-          if (title.endsWith(".")) {
-            title = title.slice(0, -1);
+        let title: string | null = null;
+
+        // 1. Create a regex to match the Code prefix (e.g. "§ 81.05") at the start
+        const codeRegex = new RegExp(`^§\\s*${code.replace(".", "\\.")}\\s*`);
+
+        if (codeRegex.test(cleanText)) {
+          // 2. Remove the code prefix to get the Title part
+          let titleText = cleanText.replace(codeRegex, "").trim();
+
+          // 3. Join lines into a single string (replace newlines with space)
+          titleText = titleText.replace(/\n/g, " ");
+
+          // 4. Collapse multiple spaces
+          titleText = titleText.replace(/\s+/g, " ");
+
+          // 5. Remove trailing dot if present
+          if (titleText.endsWith(".")) {
+            titleText = titleText.slice(0, -1);
           }
-        } else {
-          // Fallback if TOC entry is multiline (unlikely for TOC but possible)
-          const lines = cleanText.split("\n");
-          if (lines.length > 1 && !lines[1].trim().startsWith("§")) {
-            title = lines[1].trim();
-            if (title.endsWith(".")) {
-              title = title.slice(0, -1);
-            }
-          }
+
+          title = titleText.trim();
         }
 
         // Initialize with Title from TOC, empty Body
