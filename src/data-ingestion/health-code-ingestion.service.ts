@@ -21,16 +21,16 @@ export class HealthCodeIngestionService {
     const dataBuffer = fs.readFileSync(filePath);
     const data = await pdf(dataBuffer);
 
-    // 1. Detect the main Chapter Number
+    // Detect main chapter number
     const chapterNumber = this.parsingService.extractChapterNumber(data.text);
     this.logger.log(
       `Detected Document Context: ARTICLE ${chapterNumber === "\\d+" ? "(Unknown)" : chapterNumber}`
     );
 
-    // 2. Flatten Text
+    // Flatten text
     const flattenedText = this.parsingService.flattenText(data.text);
 
-    // 3. Split based on Section Codes
+    // Split sections
     const distinctSections = this.parsingService.splitSections(
       flattenedText,
       chapterNumber
@@ -50,7 +50,7 @@ export class HealthCodeIngestionService {
 
       const { code, title, body } = parsed;
 
-      // Deduplication: prefer entry with longer body
+      // Deduplication
       const existingIndex = validSections.findIndex((a) => a.code === code);
       if (existingIndex !== -1) {
         if (body.length > validSections[existingIndex].fullText.length) {
@@ -69,9 +69,7 @@ export class HealthCodeIngestionService {
     let chunksCount = 0;
 
     for (const { code, fullText, title } of validSections) {
-      // 4. Create Parent Health Code Entry
-      // Title extraction is best-effort.
-      // We store fullText for reference.
+      // Create parent entry
       const healthCode = await this.prisma.healthCode.upsert({
         where: { code },
         update: { fullText, title },
@@ -82,12 +80,10 @@ export class HealthCodeIngestionService {
         },
       });
 
-      // 5. Create Chunks
-      // Use sentence-based chunking as requested.
+      // Create chunks
       const mergedChunks = this.parsingService.chunkTextBySentence(fullText);
 
-      // Delete existing chunks to avoid duplication on re-run (or use checksums)
-      // Ideally we'd sync, but deleting old chunks for this Section is safer/easier for now.
+      // Reset chunks
       await this.prisma.healthCodeChunk.deleteMany({
         where: { healthCodeId: healthCode.id },
       });
