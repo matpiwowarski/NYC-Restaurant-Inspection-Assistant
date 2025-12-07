@@ -1,4 +1,4 @@
-# NYC Restaurant Inspection Assistant
+# Challenge B: NYC Restaurant Inspection Assistant
 
 ## Overview
 
