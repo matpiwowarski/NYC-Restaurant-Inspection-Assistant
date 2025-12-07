@@ -14,7 +14,7 @@ Before running the application, you must load the data into MongoDB.
    ```bash
    pnpm run load-data
    ```
-3. **Verify Data**: I recommend using [MongoDB Compass](https://www.mongodb.com/products/tools/compass) to connect to your local database (`mongodb://localhost:27017/nyc_inspector`) and verify that the `HealthCodeArticle` and `Violation` collections have been populated correctly.
+3. **Verify Data**: I recommend using [MongoDB Compass](https://www.mongodb.com/products/tools/compass) to connect to your local database (`mongodb://localhost:27017/nyc_inspector`) and verify that the `HealthCode` and `Violation` collections have been populated correctly.
 
 ## Implementation Plan
 
@@ -23,10 +23,10 @@ Before running the application, you must load the data into MongoDB.
     - NestJS application
     - Prisma ORM (MongoDB provider)
 2.  **Data Ingestion**:
-    - Parsing `data/health_code.pdf` into articles with embeddings.
+    - Parsing `data/health_code.pdf` into sections with embeddings.
     - Parsing `data/inspections.csv` for unique violation descriptions.
 3.  **Analysis Engine**:
-    - Comparing violation descriptions against Health Code articles using embeddings.
+    - Comparing violation descriptions against Health Code sections using embeddings.
     - Flagging mismatches.
 
 ## Prerequisites

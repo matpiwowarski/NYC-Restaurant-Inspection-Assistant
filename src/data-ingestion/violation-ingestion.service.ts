@@ -49,7 +49,6 @@ export class ViolationIngestionService {
         await this.featureExtractionService.generateEmbedding(description);
 
       // Using composite key logic or just upserting by code+description unique constraint if possible
-      // However, our schema currently only has Code unique in HealthArticle, but Violation has @@unique([code, description])
 
       await this.prisma.violation.upsert({
         where: {

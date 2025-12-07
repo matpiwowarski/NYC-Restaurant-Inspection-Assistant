@@ -19,30 +19,30 @@ export class HealthCodeIngestionService {
     const dataBuffer = fs.readFileSync(filePath);
     const data = await pdf(dataBuffer);
 
-    // 1. Detect the main Article Number from the document header (e.g. "ARTICLE 81")
-    const articleMatch = data.text.match(/ARTICLE\s+(\d+)/i);
-    if (!articleMatch) {
+    // 1. Detect the main Chapter Number from the document header (e.g. "ARTICLE 81")
+    const headerMatch = data.text.match(/ARTICLE\s+(\d+)/i);
+    if (!headerMatch) {
       this.logger.warn(
         "Could not detect 'ARTICLE {number}' header. Defaulting to broad scanning."
       );
     }
-    const articleNumber = articleMatch ? articleMatch[1] : "\\d+";
+    const chapterNumber = headerMatch ? headerMatch[1] : "\\d+";
     this.logger.log(
-      `Detected Document Context: ARTICLE ${articleNumber === "\\d+" ? "(Unknown)" : articleNumber}`
+      `Detected Document Context: ARTICLE ${chapterNumber === "\\d+" ? "(Unknown)" : chapterNumber}`
     );
 
     // 2. Flatten Text Strategy
     // Remove all newlines and extra spaces to treat the document as a continuous stream.
     const flattenedText = data.text.replace(/\s+/g, " ").trim();
 
-    // 3. Split based on Article Codes
-    // Pattern: Lookahead for "§ {ArticleNumber}.XX" (allowing optional space after §)
-    const splitRegex = new RegExp(`(?=§\\s*${articleNumber}\\.\\d+)`, "g");
+    // 3. Split based on Section Codes
+    // Pattern: Lookahead for "§ {ChapterNumber}.XX" (allowing optional space after §)
+    const splitRegex = new RegExp(`(?=§\\s*${chapterNumber}\\.\\d+)`, "g");
     const distinctSections = flattenedText.split(splitRegex);
 
     this.logger.log(`Found ${distinctSections.length} potential sections.`);
 
-    const validArticles: {
+    const validSections: {
       code: string;
       title: string;
       fullText: string;
@@ -52,6 +52,11 @@ export class HealthCodeIngestionService {
       if (!section.trim().startsWith("§")) continue;
 
       // Extract Code
+      // Explanation:
+      // ^      : Start of string
+      // §      : Literal section symbol
+      // \s*    : Optional whitespace
+      // (\d+\.\d+) : Capture group for digits dot digits (e.g., 81.05)
       const codeMatch = section.match(/^§\s*(\d+\.\d+)/);
       if (!codeMatch) continue;
 
@@ -83,27 +88,27 @@ export class HealthCodeIngestionService {
       // Or we want to merge?
       // User's request implied simplicity. Let's process valid ones.
 
-      // Deduplication: prefer entry with longer body (likely the real article, not TOC)
-      const existingIndex = validArticles.findIndex((a) => a.code === code);
+      // Deduplication: prefer entry with longer body (likely the real section, not TOC)
+      const existingIndex = validSections.findIndex((a) => a.code === code);
       if (existingIndex !== -1) {
-        if (body.length > validArticles[existingIndex].fullText.length) {
+        if (body.length > validSections[existingIndex].fullText.length) {
           // Replace with this one as it seems to be the main content
-          validArticles[existingIndex] = { code, title, fullText: body };
+          validSections[existingIndex] = { code, title, fullText: body };
         }
       } else {
-        validArticles.push({ code, title, fullText: body });
+        validSections.push({ code, title, fullText: body });
       }
     }
 
     this.logger.log(
-      `Final unique articles to process: ${validArticles.length}`
+      `Final unique sections to process: ${validSections.length}`
     );
 
     let count = 0;
     let chunksCount = 0;
 
-    for (const { code, fullText, title } of validArticles) {
-      // 4. Create Parent Article
+    for (const { code, fullText, title } of validSections) {
+      // 4. Create Parent Health Code Entry
       // Title extraction is best-effort.
       // We store fullText for reference.
       const healthCode = await this.prisma.healthCode.upsert({
