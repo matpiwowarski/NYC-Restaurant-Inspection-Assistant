@@ -37,7 +37,10 @@ export class HealthCodeIngestionService {
 
     const distinctSections = data.text.split(splitRegex);
 
-    const articlesMap = new Map<string, string>();
+    const articlesMap = new Map<
+      string,
+      { fullText: string; title: string | null }
+    >();
 
     for (const rawSection of distinctSections) {
       // CLEANING STRATEGY:
@@ -61,22 +64,60 @@ export class HealthCodeIngestionService {
 
       const code = codeMatch[1]; // e.g. "81.01"
 
-      // Basic Title Extraction (line after code or same line)
-      // § 81.01 Scope.
-      let title = null;
-      const titleMatch = cleanText.match(/^§\s*\d+\.\d+\s+(.+)$/m);
-      if (titleMatch) {
-        title = titleMatch[1].trim();
-      }
+      // Deduplication & TOC Strategy:
+      // First occurrence is usually in the Table of Contents (TOC). We trust this Title.
+      // Subsequent occurrences are the Article Body. We use this for fullText.
 
-      // Deduplication: keep longest version
-      if (articlesMap.has(code)) {
-        const existing = articlesMap.get(code) || "";
-        if (cleanText.length > existing.length) {
-          articlesMap.set(code, cleanText);
+      if (!articlesMap.has(code)) {
+        // --- TOC OCCURRENCE ---
+        // Extract Title from TOC line e.g. "§ 81.01 Scope."
+        // We want "Scope" (no dot)
+        let title: string | null = null;
+        const sameLineMatch = cleanText.match(/^§\s*\d+\.\d+\s+(.+)$/m);
+
+        if (sameLineMatch) {
+          title = sameLineMatch[1].trim();
+          // Remove trailing dot if present
+          if (title.endsWith(".")) {
+            title = title.slice(0, -1);
+          }
+        } else {
+          // Fallback if TOC entry is multiline (unlikely for TOC but possible)
+          const lines = cleanText.split("\n");
+          if (lines.length > 1 && !lines[1].trim().startsWith("§")) {
+            title = lines[1].trim();
+            if (title.endsWith(".")) {
+              title = title.slice(0, -1);
+            }
+          }
         }
+
+        // Initialize with Title from TOC, empty Body
+        articlesMap.set(code, { fullText: "", title });
       } else {
-        articlesMap.set(code, cleanText);
+        // --- BODY OCCURRENCE ---
+        // We already have the entry from TOC. Now we populate fullText.
+        // We want to STRIP the Header (Code + Title) from the body text.
+        // The body usually starts with: § 81.01 Scope.\nActual content...
+
+        // Find where the first line ends, or the header ends.
+        // We'll assume the header is the first paragraph/line that matches the Code pattern.
+        let bodyText = cleanText;
+
+        // Regex to match the start "§ 81.01 [Title...]" up to the first newline or significant break
+        // Actually, since we cleaned text, we can just split by newline and drop the first line if it looks like a header.
+        const lines = cleanText.split("\n");
+        if (lines.length > 0 && lines[0].includes(code)) {
+          // Drop the first line (the header)
+          bodyText = lines.slice(1).join("\n").trim();
+        }
+
+        const existing = articlesMap.get(code)!;
+        // If we found a body that is longer than what we have (in case of dupes), save it.
+        // Note: existing.fullText starts empty from TOC step.
+        if (bodyText.length > existing.fullText.length) {
+          articlesMap.set(code, { ...existing, fullText: bodyText });
+        }
       }
     }
 
@@ -85,17 +126,17 @@ export class HealthCodeIngestionService {
     let count = 0;
     let chunksCount = 0;
 
-    for (const [code, fullText] of articlesMap) {
+    for (const [code, { fullText, title }] of articlesMap) {
       // 3. Create Parent Article
       // Title extraction is best-effort.
       // We store fullText for reference.
       const healthCode = await this.prisma.healthCode.upsert({
         where: { code },
-        update: { fullText },
+        update: { fullText, title },
         create: {
           code,
           fullText,
-          title: null, // Populated if we extracted properly, otherwise null or update logic
+          title,
         },
       });
 
