@@ -24,6 +24,9 @@ export class HealthCodeIngestionService {
     // Convert to single line by replacing all whitespace sequences with single spaces
     let fullText = pdfData.text.replace(/\s+/g, " ");
 
+    // Normalize section headers: remove space between § and number (e.g. "§ 81" -> "§81")
+    fullText = fullText.replace(/§\s+(\d)/g, "§$1");
+
     const articleCode = this.parsingService.extractArticleCode(fullText);
 
     if (!articleCode) {
