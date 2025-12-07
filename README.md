@@ -7,7 +7,7 @@
 I prioritized **Database Design** and **Advanced Data Ingestion** because I believe a solid data structure is the decisive factor for the entire system's performance and accuracy.
 
 **Forward-Looking Schema**:
-The database is designed to support the core analysis logic immediately. By isolating individual sentences (chunks) and linking them to their parent Articles (Code, Title), we can efficiently query the most relevant legal justification for any given violation. This makes the "Verification" step—checking if a violation exists in the code—straightforward.
+The database is designed to support the core analysis logic immediately. By isolating individual sentences (chunks) and linking them to their parent Articles (Code, Title), we can efficiently query the most relevant legal justification for any given violation.
 
 **Semantic Search**:
 I chose this over simple text search because of the vocabulary mismatch. Inspectors use informal descriptions (e.g. "mice present") that may not overlap with the formal legal text (e.g. "conditions conducive to pests"). Semantic search captures the meaning rather than just matching characters.
