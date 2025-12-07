@@ -19,6 +19,41 @@ export class HealthCodeIngestionService {
   async ingestHealthCode(filePath: string) {
     this.logger.log(`Parsing Health Code PDF from: ${filePath}`);
     const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdf(dataBuffer);
+    const pdfData = await pdf(dataBuffer);
+
+    // Convert to single line by replacing newlines with spaces
+    const fullText = pdfData.text.replace(/\n/g, " ");
+
+    const articleCode = this.parsingService.extractArticleCode(fullText);
+
+    if (!articleCode) {
+      this.logger.error("Could not extract Article Code from PDF.");
+      return;
+    }
+
+    this.logger.log(`Found Article Code: ${articleCode}`);
+
+    // Extract sections (e.g. 81.01, 81.03) based on the Article Code
+    const sections = this.parsingService.extractSections(fullText, articleCode);
+    this.logger.log(
+      `Found ${sections.length} sections for Article ${articleCode}.`
+    );
+
+    for (const section of sections) {
+      await this.prisma.healthCode.upsert({
+        where: { code: section.code },
+        update: {
+          fullText: "",
+          title: section.title,
+        },
+        create: {
+          code: section.code,
+          fullText: "",
+          title: section.title,
+        },
+      });
+    }
+
+    this.logger.log(`Successfully processed ${sections.length} sections.`);
   }
 }
