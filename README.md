@@ -1,11 +1,6 @@
 # Challenge B: NYC Restaurant Inspection Assistant
 
-## Overview
-
-A tool designed to flag discrepancies between NYC restaurant inspection violation descriptions and the actual Health Code.
-The system parses inspection data (CSV) and the Health Code (PDF), stores them in MongoDB, and uses vector search/semantic similarity to verify if cited violations actually exist in the current code.
-
-## Implementation Context
+## Problem & Approach
 
 ### Why this scope?
 
@@ -32,6 +27,10 @@ To ensure data integrity and parsing accuracy, I utilized **MongoDB Compass**:
 - **Visual Inspection**: Manually compared generated database records against the original PDF text and CSV rows to verify content fidelity.
 - **Aggregation Analysis**: Used filtering and aggregation queries to validate extraction counts and detect anomalies in the parsed data.
 
+## Database Schema
+
+![Database Schema](docs/schema.png)
+
 ## Roadmap & Status
 
 ### ✅ Completed
@@ -55,18 +54,6 @@ To ensure data integrity and parsing accuracy, I utilized **MongoDB Compass**:
 - [ ] **Resilience**: Robust validation for corrupt/incomplete PDF or CSV files.
 - [ ] **Testing**: Comprehensive unit tests for `health-code-parsing.service.ts`.
 - [ ] **Optimization**: Stream-based ingestion to reduce RAM usage (process in chunks).
-
-## Technical Approach
-
-We use **Semantic Search** to bridge the gap between informal violation descriptions (e.g., "Raw shellfish stored improperly") and formal legal text.
-
-1. **Ingestion**: Parse Health Code -> Generate Embeddings.
-2. **Analysis**: Violation Description -> Embedding -> Vector Search.
-3. **Result**: Low similarity score = Potential discrepancy.
-
-## Database Schema
-
-![Database Schema](docs/schema.png)
 
 ## Prerequisites
 
