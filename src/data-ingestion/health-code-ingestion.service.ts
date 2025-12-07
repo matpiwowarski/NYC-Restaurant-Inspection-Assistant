@@ -50,9 +50,16 @@ export class HealthCodeIngestionService {
     }
 
     // Phase 2: Extract content destructively
-    for (const section of sections) {
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
+      const nextSection = sections[i + 1];
+
       const { content, remainingText } =
-        this.parsingService.extractContentByCode(fullText, section.code);
+        this.parsingService.extractContentByCode(
+          fullText,
+          section.code,
+          nextSection?.code
+        );
 
       // Update fullText with the text remaining after extraction
       fullText = remainingText;
