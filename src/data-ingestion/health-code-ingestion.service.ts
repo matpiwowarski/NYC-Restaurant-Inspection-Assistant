@@ -67,7 +67,7 @@ export class HealthCodeIngestionService {
       // Update fullText with the text remaining after extraction
       fullText = remainingText;
 
-      await this.prisma.healthCode.upsert({
+      const healthCodeRecord = await this.prisma.healthCode.upsert({
         where: { code: section.code },
         update: {
           fullText: content,
@@ -79,6 +79,29 @@ export class HealthCodeIngestionService {
           title: section.title,
         },
       });
+
+      // Clear existing chunks to avoid duplicates
+      await this.prisma.healthCodeChunk.deleteMany({
+        where: { healthCodeId: healthCodeRecord.id },
+      });
+
+      // Create chunks for the section
+      const sentences = this.parsingService.splitIntoSentences(content);
+      for (const sentence of sentences) {
+        if (!sentence.trim()) continue;
+
+        const embedding =
+          await this.featureExtractionService.generateEmbedding(sentence);
+
+        await this.prisma.healthCodeChunk.create({
+          data: {
+            content: sentence,
+            embedding: embedding,
+            code: section.code,
+            healthCodeId: healthCodeRecord.id,
+          },
+        });
+      }
     }
 
     this.logger.log(`Successfully processed ${sections.length} sections.`);
