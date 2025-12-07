@@ -83,16 +83,8 @@ export class HealthCodeIngestionService {
       });
 
       // 5. Create Chunks
-      // Use the chunking logic (which is slightly different now but cleaner?)
-      // Actually let's use the new parsingService chunkText if we want, or keep logic here.
-      // User asked to move *string operations* to service.
-      // The current chunking logic is:
-      // const rawChunks = fullText.split("\n"); ... loop
-      // But wait! fullText is now flattened, so it has no newlines!
-      // So splitting by \n yields one big chunk.
-      // My parsingService.chunkText handles this better by splitting by space.
-
-      const mergedChunks = this.parsingService.chunkText(fullText, 500);
+      // Use sentence-based chunking as requested.
+      const mergedChunks = this.parsingService.chunkTextBySentence(fullText);
 
       // Delete existing chunks to avoid duplication on re-run (or use checksums)
       // Ideally we'd sync, but deleting old chunks for this Section is safer/easier for now.
@@ -101,7 +93,7 @@ export class HealthCodeIngestionService {
       });
 
       for (const chunkContent of mergedChunks) {
-        if (chunkContent.length < 20) continue; // Noise filter
+        if (chunkContent.length < 5) continue; // Noise filter (reduced from 20)
 
         const embedding =
           await this.featureExtractionService.generateEmbedding(chunkContent);
