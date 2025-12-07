@@ -9,7 +9,7 @@ The system parses inspection data (CSV) and the Health Code (PDF), stores them i
 
 ### ✅ Completed
 
-- [x] **Database Schema**: Designed schema to store PDF/CSV data and support vector-based semantic search.
+- [x] **Database Schema**: Designed schema to store PDF/CSV data and support vector-based semantic search. The structure also enables understanding the context of discrepancies and easily presenting it to the user.
 - [x] **Data Ingestion**: Parsing `health_code.pdf` and `inspections.csv`.
 - [x] **Infrastructure**: MongoDB Replica Set (Docker), Prisma setup.
 - [x] **Embeddings**: Generating vector embeddings for Health Code text chunks.
