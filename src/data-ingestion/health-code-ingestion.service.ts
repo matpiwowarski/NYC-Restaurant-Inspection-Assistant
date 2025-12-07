@@ -22,7 +22,7 @@ export class HealthCodeIngestionService {
     const pdfData = await pdf(dataBuffer);
 
     // Convert to single line by replacing all whitespace sequences with single spaces
-    const fullText = pdfData.text.replace(/\s+/g, " ");
+    let fullText = pdfData.text.replace(/\s+/g, " ");
 
     const articleCode = this.parsingService.extractArticleCode(fullText);
 
@@ -39,15 +39,23 @@ export class HealthCodeIngestionService {
       `Found ${sections.length} sections for Article ${articleCode}.`
     );
 
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i];
-      const nextSection = sections[i + 1]; // undefined for the last section
+    // Phase 1: Remove Table of Contents (first occurrences of headers)
+    for (const section of sections) {
+      if (section.rawMatch) {
+        fullText = this.parsingService.removeSectionHeader(
+          fullText,
+          section.rawMatch
+        );
+      }
+    }
 
-      const content = this.parsingService.extractSectionContent(
-        fullText,
-        section,
-        nextSection
-      );
+    // Phase 2: Extract content destructively
+    for (const section of sections) {
+      const { content, remainingText } =
+        this.parsingService.extractContentByCode(fullText, section.code);
+
+      // Update fullText with the text remaining after extraction
+      fullText = remainingText;
 
       await this.prisma.healthCode.upsert({
         where: { code: section.code },
@@ -64,5 +72,6 @@ export class HealthCodeIngestionService {
     }
 
     this.logger.log(`Successfully processed ${sections.length} sections.`);
+    this.logger.log(`Remaining text after ingestion: "${fullText.trim()}"`);
   }
 }
