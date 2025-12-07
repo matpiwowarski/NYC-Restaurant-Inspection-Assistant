@@ -22,10 +22,13 @@ My focus was on solving the complex data engineering challenges:
 
 ### Evaluation Strategy
 
-To ensure data integrity and parsing accuracy, I utilized **MongoDB Compass**:
+To ensure data integrity and parsing accuracy, I utilized **MongoDB Compass** and external validation:
 
+- **Quantitative Verification**:
+  - **Health Code**: Confirmed 33 Article records were created, consistent with the PDF structure.
+  - **Violations**: Verified 231 unique violation records were created. This matches the count of unique `VIOLATION CODE` + `VIOLATION DESCRIPTION` pairs found in the NYC OpenData online visualizer.
 - **Visual Inspection**: Manually compared generated database records against the original PDF text and CSV rows to verify content fidelity.
-- **Aggregation Analysis**: Used filtering and aggregation queries to validate extraction counts and detect anomalies in the parsed data.
+- **Aggregation Analysis**: Used filtering and aggregation queries to validate extraction counts and detect anomalies.
 
 ## Database Schema
 
