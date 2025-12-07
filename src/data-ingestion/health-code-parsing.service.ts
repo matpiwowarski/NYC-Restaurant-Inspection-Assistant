@@ -16,9 +16,21 @@ export class HealthCodeParsingService {
     const regex = new RegExp(`§(${articleCode}\\.\\d+)\\s+([^§]+)`, "g");
     const matches = [...text.matchAll(regex)];
 
-    return matches.map((match) => ({
-      code: match[1],
-      title: match[2].trim(),
+    const uniqueSections = new Map<string, string>();
+
+    for (const match of matches) {
+      const code = match[1];
+      const title = match[2].trim();
+
+      // Only store the first occurrence to avoid overwriting with references later in text
+      if (!uniqueSections.has(code)) {
+        uniqueSections.set(code, title);
+      }
+    }
+
+    return Array.from(uniqueSections.entries()).map(([code, title]) => ({
+      code,
+      title,
     }));
   }
 }
