@@ -50,8 +50,8 @@ Before analyzing violations, you must populate the database with the Health Code
 
 1.  **Prepare Data Files**
     Place the following files in the `data/` directory (create it if it doesn't exist):
-    - `health_code.pdf`: The official NYC Health Code document.
-    - `inspections.csv`: The dataset of restaurant inspections.
+    - `health_code.pdf`: [ARTICLE 81 FOOD PREPARATION AND FOOD ESTABLISHMENTS](https://www.nyc.gov/assets/doh/downloads/pdf/about/healthcode/health-code-article81.pdf)
+    - `inspections.csv`: [DOHMH New York City Restaurant Inspection Results](https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j/about_data)
 
 2.  **Run Ingestion Command**
 
