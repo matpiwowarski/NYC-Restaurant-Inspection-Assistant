@@ -94,6 +94,6 @@ export class HealthCodeParsingService {
       }
     }
 
-    return fullText.substring(startIndex, endIndex).trim();
+    return fullText.substring(startIndex, endIndex).trim().replace(/\s+/g, " ");
   }
 }
