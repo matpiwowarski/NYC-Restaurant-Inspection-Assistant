@@ -21,7 +21,8 @@ model HealthCodeChunk {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   content   String
   embedding Float[]
-  
+  code      String
+
   healthCodeId String     @db.ObjectId
   healthCode   HealthCode @relation(fields: [healthCodeId], references: [id])
 }

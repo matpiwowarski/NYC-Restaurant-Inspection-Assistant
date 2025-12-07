@@ -131,6 +131,7 @@ export class HealthCodeIngestionService {
             content: chunkContent,
             embedding,
             healthCodeId: healthCode.id,
+            code: healthCode.code,
           },
         });
         chunksCount++;
