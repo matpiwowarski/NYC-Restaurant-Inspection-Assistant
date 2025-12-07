@@ -21,8 +21,8 @@ export class HealthCodeIngestionService {
     const dataBuffer = fs.readFileSync(filePath);
     const pdfData = await pdf(dataBuffer);
 
-    // Convert to single line by replacing all whitespace sequences with single spaces
-    let fullText = pdfData.text.replace(/\s+/g, " ");
+    // Keep raw text to preserve newlines for parsing
+    let fullText = pdfData.text;
 
     // Normalize section headers: remove space between § and number (e.g. "§ 81" -> "§81")
     fullText = fullText.replace(/§\s+(\d)/g, "§$1");

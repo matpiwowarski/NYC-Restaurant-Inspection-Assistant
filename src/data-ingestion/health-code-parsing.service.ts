@@ -23,8 +23,8 @@ export class HealthCodeParsingService {
 
     for (const match of matches) {
       const code = match[1];
-      // Trim whitespace and remove trailing dot if present
-      const title = match[2].trim().replace(/\.$/, "");
+      // Trim whitespace and remove trailing dot if present. Normalize whitespace since fullText is raw.
+      const title = match[2].replace(/\s+/g, " ").trim().replace(/\.$/, "");
       const rawMatch = match[0];
 
       // Only store the first occurrence to avoid overwriting with references later in text
@@ -68,16 +68,18 @@ export class HealthCodeParsingService {
     if (nextCode) {
       // If we know the next section code, look for it specifically
       const escapedNextCode = nextCode.replace(".", "\\.");
-      const nextRegex = new RegExp(`§${escapedNextCode}`);
-      // Search for nextCode within the text AFTER the current start
-      // We can search the whole string and find the first occurrence that is > startIndex
-      // (Since we already removed TOCs, the first occurrence after start should be the one)
-      const nextMatch = fullText
-        .slice(startIndex + match[0].length)
-        .match(nextRegex);
+      // Search for nextCode but ONLY if it appears at the start of a line (ignoring leading whitespace)
+      // Use 'm' flag so ^ matches start of lines
+      // Use 'g' flag so we can set lastIndex to skip the current header
+      const nextRegex = new RegExp(`^\\s*§${escapedNextCode}`, "gm");
 
-      if (nextMatch && nextMatch.index !== undefined) {
-        endIndex = startIndex + match[0].length + nextMatch.index;
+      // Start searching after the current section header
+      nextRegex.lastIndex = startIndex + match[0].length;
+
+      const nextMatch = nextRegex.exec(fullText);
+
+      if (nextMatch) {
+        endIndex = nextMatch.index;
       }
     } else {
       // Last section? Fallback to searching for ANY next section-like pattern might be risky if we want to include everything?
