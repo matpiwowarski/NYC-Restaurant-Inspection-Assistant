@@ -120,7 +120,7 @@ export class HealthCodeParsingService {
         .filter((s) => s.length > 0);
     }
 
-    // Fallback regex
+    // Without Intl.Segmenter
     return text.match(/[^.?!]+[.?!]+(\s|$)/g)?.map((s) => s.trim()) || [text];
   }
 }
