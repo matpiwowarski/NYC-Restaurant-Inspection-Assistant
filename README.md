@@ -33,13 +33,13 @@ The system parses inspection data (CSV) and the Health Code (PDF), stores them i
 
 We use **Semantic Search** to bridge the gap between informal violation descriptions (e.g., "Raw shellfish stored improperly") and formal legal text.
 
-1.  **Ingestion**: Parse Health Code -> Generate Embeddings.
-2.  **Analysis**: Violation Description -> Embedding -> Vector Search.
-    38: 3. **Result**: Low similarity score = Potential discrepancy.
-    39:
-    40: ## Database Schema
-    41:
-    42: ![Database Schema](docs/schema.png)
+1. **Ingestion**: Parse Health Code -> Generate Embeddings.
+2. **Analysis**: Violation Description -> Embedding -> Vector Search.
+3. **Result**: Low similarity score = Potential discrepancy.
+
+## Database Schema
+
+![Database Schema](docs/schema.png)
 
 ## Prerequisites
 
