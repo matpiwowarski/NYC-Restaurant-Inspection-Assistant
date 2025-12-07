@@ -20,7 +20,8 @@ export class HealthCodeParsingService {
 
     for (const match of matches) {
       const code = match[1];
-      const title = match[2].trim();
+      // Trim whitespace and remove trailing dot if present
+      const title = match[2].trim().replace(/\.$/, "");
 
       // Only store the first occurrence to avoid overwriting with references later in text
       if (!uniqueSections.has(code)) {
