@@ -48,7 +48,7 @@ export class ViolationIngestionService {
       const embedding =
         await this.featureExtractionService.generateEmbedding(description);
 
-      // Using composite key logic or just upserting by code+description unique constraint if possible
+      // Upsert to avoid duplicates, using the composite unique key defined in Prisma schema
 
       await this.prisma.violation.upsert({
         where: {
