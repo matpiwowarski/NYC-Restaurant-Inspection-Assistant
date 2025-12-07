@@ -4,7 +4,7 @@
 
 ### Why this scope?
 
-I prioritized **Database Design** and **Advanced Data Ingestion** because I believe a solid data structure is the decisive factor for the entire system's performance and accuracy.
+I prioritized **Database Design** and **Advanced Data Ingestion** because I believe a solid data structure is the decisive factor for the entire system's performance and accuracy. I also viewed this as an excellent challenge to practice transforming "messy" real-world inputs (massive CSV and an unstructured, inconsistent PDF) into clean, actionable data.
 
 **Forward-Looking Schema & Chunking Strategy**:
 The database is designed to support the core analysis logic immediately. I chose to chunk the Health Code into **individual sentences** because violation descriptions are typically single sentences. Comparing a short description against an entire multi-page legal article would dilute the semantic meaning and yield poor results. 1-to-1 sentence comparison ensures high-precision semantic matching.
