@@ -8,14 +8,6 @@ export class HealthCodeParsingService {
     return match ? match[1] : null;
   }
 
-  extractTitle(text: string): string | null {
-    // Look for text after "ARTICLE <number>" until the first "§" symbol
-    // 1. Match potentially "ARTICLE <digits>"
-    // 2. Capture everything ([^§]+) until '§'
-    const match = text.match(/^\s*ARTICLE\s+\d+\s+([^§]+)/i);
-    return match ? match[1].trim() : null;
-  }
-
   extractSections(
     text: string,
     articleCode: string
