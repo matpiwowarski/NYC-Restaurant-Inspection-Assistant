@@ -113,16 +113,6 @@ export class HealthCodeParsingService {
 
   splitIntoSentences(text: string): string[] {
     // Simple sentence splitting by '.', '?', '!' followed by space or end of string.
-    // This is basic and might split on abbreviations, but sufficient for now.
-    // We can refine regex to avoid common abbreviations like "Mr.", "Mrs.", "St.", "Dr." etc. if needed.
-    // For Health Code, "Sec." or "Art." might be common.
-    // Let's stick to a slightly safer lookbehind if supported or just separate by delimiters.
-
-    // Match period, question mark, or exclamation mark not preceded by known abbreviations?
-    // Javascript lookbehind is supported in Node.js recent versions.
-    // But let's keep it simple: split by ([.?!])\s+ and reconstruct?
-    // Or use Intl.Segmenter if available? (Node 16+)
-
     // Using Intl.Segmenter for better accuracy
     if (typeof Intl !== "undefined" && Intl.Segmenter) {
       const segmenter = new Intl.Segmenter("en", { granularity: "sentence" });
