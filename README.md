@@ -18,7 +18,7 @@ Selected for its flexibility in handling the varied and sometimes inconsistent s
 My focus was on solving the complex data engineering challenges:
 
 - **Noise Reduction**: Distilled a massive inspection CSV file down to just ~231 unique, meaningful violation descriptions.
-- **Resilient Parsing**: Built a custom parser for the `Health Code` PDF that handles nested legal structures, inconsistent formatting, human errors, and "floating" headers to ensure clean, semantic chunks for embedding.
+- **Resilient Parsing**: Built a custom parser for the `Health Code` PDF that handles nested legal structures, inconsistent formatting, human errors, etc. to ensure clean, semantic chunks for embedding.
 
 ### Evaluation Strategy
 
