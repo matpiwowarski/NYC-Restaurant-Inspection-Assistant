@@ -94,6 +94,10 @@ export class HealthCodeParsingService {
       }
     }
 
-    return fullText.substring(startIndex, endIndex).trim().replace(/\s+/g, " ");
+    return fullText
+      .substring(startIndex, endIndex)
+      .trim()
+      .replace(/\s+/g, " ") // Normalize whitespace
+      .replace(/^[\.\s]+/, ""); // Remove leading dot and space
   }
 }

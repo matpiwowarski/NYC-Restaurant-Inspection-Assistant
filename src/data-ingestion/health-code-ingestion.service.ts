@@ -21,8 +21,8 @@ export class HealthCodeIngestionService {
     const dataBuffer = fs.readFileSync(filePath);
     const pdfData = await pdf(dataBuffer);
 
-    // Convert to single line by replacing newlines with spaces
-    const fullText = pdfData.text.replace(/\n/g, " ");
+    // Convert to single line by replacing all whitespace sequences with single spaces
+    const fullText = pdfData.text.replace(/\s+/g, " ");
 
     const articleCode = this.parsingService.extractArticleCode(fullText);
 
