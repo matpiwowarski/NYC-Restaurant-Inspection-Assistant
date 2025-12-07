@@ -27,48 +27,38 @@ export class HealthCodeIngestionService {
       `Detected Document Context: ARTICLE ${chapterNumber === "\\d+" ? "(Unknown)" : chapterNumber}`
     );
 
-    // Flatten text
-    const flattenedText = this.parsingService.flattenText(data.text);
-
-    // Split sections
-    const distinctSections = this.parsingService.splitSections(
-      flattenedText,
-      chapterNumber
-    );
-
-    this.logger.log(`Found ${distinctSections.length} potential sections.`);
-
-    const validSections: {
-      code: string;
-      title: string;
-      fullText: string;
-    }[] = [];
-
-    for (const section of distinctSections) {
-      const parsed = this.parsingService.parseSection(section);
-      if (!parsed) continue;
-
-      const { code, title, body } = parsed;
-
-      // Deduplication
-      const existingIndex = validSections.findIndex((a) => a.code === code);
-      if (existingIndex !== -1) {
-        if (body.length > validSections[existingIndex].fullText.length) {
-          validSections[existingIndex] = { code, title, fullText: body };
-        }
-      } else {
-        validSections.push({ code, title, fullText: body });
-      }
-    }
+    // 1. Extract TOC from the beginning
+    const { entries: tocEntries, bodyStartIndex } =
+      this.parsingService.extractTableOfContents(data.text, chapterNumber);
 
     this.logger.log(
-      `Final unique sections to process: ${validSections.length}`
+      `Extracted TOC with ${tocEntries.length} sections. Body starts at line ${bodyStartIndex}.`
+    );
+
+    if (tocEntries.length === 0) {
+      this.logger.error("Failed to extract Table of Contents. Aborting.");
+      return;
+    }
+
+    // 2. Strict split using TOC entries
+    // We pass the RAW text (or handled inside)
+    const validSections = this.parsingService.splitFullTextByTOC(
+      data.text,
+      tocEntries
+    );
+
+    this.logger.log(
+      `final unique sections to process: ${validSections.length}`
     );
 
     let count = 0;
     let chunksCount = 0;
 
-    for (const { code, fullText, title } of validSections) {
+    for (const section of validSections) {
+      // Cast to expected type if needed, or fix interface in parsing service
+      // We know it returns objects with { code, title, fullText } as per our implementation
+      const { code, fullText, title } = section as any;
+
       // Create parent entry
       const healthCode = await this.prisma.healthCode.upsert({
         where: { code },
@@ -89,7 +79,7 @@ export class HealthCodeIngestionService {
       });
 
       for (const chunkContent of mergedChunks) {
-        if (chunkContent.length < 5) continue; // Noise filter (reduced from 20)
+        if (chunkContent.length < 5) continue; // Noise filter
 
         const embedding =
           await this.featureExtractionService.generateEmbedding(chunkContent);
