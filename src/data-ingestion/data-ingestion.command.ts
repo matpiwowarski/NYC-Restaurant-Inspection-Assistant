@@ -47,6 +47,6 @@ export class DataIngestionCommand extends CommandRunner {
       );
     }
 
-    this.logger.log("🎉 Seeding process complete.");
+    this.logger.log("🎉 Success!");
   }
 }
