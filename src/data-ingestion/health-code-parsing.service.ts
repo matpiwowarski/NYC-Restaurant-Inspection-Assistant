@@ -34,4 +34,66 @@ export class HealthCodeParsingService {
       title,
     }));
   }
+
+  extractSectionContent(
+    fullText: string,
+    currentSection: { code: string; title: string },
+    nextSection?: { code: string; title: string }
+  ): string {
+    // Helper to escape regex special characters in title
+    const escapeRegExp = (string: string) => {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
+    };
+
+    // Construct regex for the current section header: §<code> <title>
+    // e.g. §81.01 Scope
+    const currentHeaderRegex = new RegExp(
+      `§${escapeRegExp(currentSection.code)}\\s+${escapeRegExp(
+        currentSection.title
+      )}`,
+      "g"
+    );
+
+    const matches = [...fullText.matchAll(currentHeaderRegex)];
+
+    // We need the SECOND match (index 1) because the first is likely in the Table of Contents
+    if (matches.length < 2) {
+      // If found less than 2 times, maybe there is no TOC or no body?
+      // Fallback to first if only 1 found, or return empty if 0
+      if (matches.length === 1) {
+        // Warning: Only found once, might be just TOC or just Body.
+        // If it's at the very beginning it's likely TOC.
+        // Let's assume if it's the only one, it's the content.
+        return ""; // Or handle differently? User insisted on 2nd occurrence. Let's return empty to be safe or maybe log?
+      }
+      return "";
+    }
+
+    const startMatch = matches[1]; // The second occurrence
+    const startIndex = startMatch.index! + startMatch[0].length;
+
+    let endIndex = fullText.length;
+
+    if (nextSection) {
+      // Find the next section header starting AFTER the current section content starts
+      const nextHeaderRegex = new RegExp(
+        `§${escapeRegExp(nextSection.code)}\\s+${escapeRegExp(
+          nextSection.title
+        )}`,
+        "g"
+      );
+
+      // We look for matches of the NEXT section
+      const nextMatches = [...fullText.matchAll(nextHeaderRegex)];
+
+      // We want the first occurrence of the Next Section that appears AFTER our startIndex
+      const nextMatch = nextMatches.find((m) => m.index! > startIndex);
+
+      if (nextMatch) {
+        endIndex = nextMatch.index!;
+      }
+    }
+
+    return fullText.substring(startIndex, endIndex).trim();
+  }
 }

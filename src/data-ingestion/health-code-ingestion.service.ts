@@ -39,16 +39,25 @@ export class HealthCodeIngestionService {
       `Found ${sections.length} sections for Article ${articleCode}.`
     );
 
-    for (const section of sections) {
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
+      const nextSection = sections[i + 1]; // undefined for the last section
+
+      const content = this.parsingService.extractSectionContent(
+        fullText,
+        section,
+        nextSection
+      );
+
       await this.prisma.healthCode.upsert({
         where: { code: section.code },
         update: {
-          fullText: "",
+          fullText: content,
           title: section.title,
         },
         create: {
           code: section.code,
-          fullText: "",
+          fullText: content,
           title: section.title,
         },
       });
