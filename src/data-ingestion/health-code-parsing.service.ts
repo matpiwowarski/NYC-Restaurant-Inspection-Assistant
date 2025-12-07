@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 export interface TocEntry {
   code: string;
   title: string;
+  fullText?: string;
 }
 
 @Injectable()
@@ -58,17 +59,10 @@ export class HealthCodeParsingService {
 
         let title = line.substring(match[0].length).trim();
 
-        // Handle multi-line titles in TOC?
-        // Simple heuristic: if the next line does NOT start with § or Page Number or Page Header, append it.
-        // For this dataset, titles seem to be single line or we can accept partial titles.
-        // Let's stick to single line for now as per "debug-pdf" output which shows clean one-liners.
-
         entries.push({ code, title });
       }
     }
 
-    // If we didn't find the loop, search in the raw text for the first occurrence AFTER the TOC block
-    // But lines-based approach is safer.
     return { entries, bodyStartIndex };
   }
 
@@ -77,8 +71,6 @@ export class HealthCodeParsingService {
    */
   splitFullTextByTOC(text: string, toc: TocEntry[]): TocEntry[] {
     const results: TocEntry[] = [];
-    // We clean up newlines for easier searching, BUT we need to be careful not to merge words.
-    // The previous 'flattenText' does this nicely.
     const flatText = this.flattenText(text);
 
     for (let i = 0; i < toc.length; i++) {
@@ -86,7 +78,6 @@ export class HealthCodeParsingService {
       const next = toc[i + 1];
 
       // We search for "§{code} {title}"
-      // We must handle potential extra spaces between §, code, and title from the PDF flattening
       const startMarker = `§${current.code} ${current.title}`;
       const escapedStart = this.escapeRegex(startMarker).replace(
         /\\ /g,
@@ -98,7 +89,7 @@ export class HealthCodeParsingService {
 
       if (!match) {
         console.warn(`Could not find section body for ${current.code}`);
-        continue; // Skip or handle error
+        continue;
       }
 
       const startIndex = match.index! + match[0].length;
@@ -116,32 +107,19 @@ export class HealthCodeParsingService {
       }
 
       const body = flatText.substring(startIndex, endIndex).trim();
-      // Only add if we actually found body text (sometimes TOC repeats headings)
+
       results.push({
         code: current.code,
         title: current.title,
-        // The algorithm says: "All text until the next Code+Title" is the body.
-        // But we want to store the FULL text (including title?)
-        // The Type 'validSections' in IngestionService expects 'fullText'
-        // Ideally fullText = Code + Title + Body? Or just Body?
-        // Existing logic used 'parsed.body' distinct from title.
-        // Let's store just the body content here as 'fullText' field implies content.
-        // BUT wait, IngestionService uses `update: { fullText, title }`
-        // So let's return it as `title` and `body` (mapped to fullText)
-        // code and title are already provided above
-      } as any);
-
-      // Mutate the result to include body property directly or just return a new structure
-      // Let's adhere to returning a list of objects with { code, title, body }
-      (results[results.length - 1] as any).fullText = body;
+        fullText: body,
+      });
     }
 
-    return results as any;
+    return results;
   }
 
   chunkTextBySentence(text: string): string[] {
     if (typeof Intl !== "undefined" && (Intl as any).Segmenter) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const segmenter = new (Intl as any).Segmenter("en", {
         granularity: "sentence",
       });

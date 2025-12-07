@@ -55,9 +55,7 @@ export class HealthCodeIngestionService {
     let chunksCount = 0;
 
     for (const section of validSections) {
-      // Cast to expected type if needed, or fix interface in parsing service
-      // We know it returns objects with { code, title, fullText } as per our implementation
-      const { code, fullText, title } = section as any;
+      const { code, fullText = "", title } = section;
 
       // Create parent entry
       const healthCode = await this.prisma.healthCode.upsert({
