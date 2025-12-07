@@ -27,12 +27,15 @@ export class HealthCodeIngestionService {
       `Detected Document Context: ARTICLE ${chapterNumber === "\\d+" ? "(Unknown)" : chapterNumber}`
     );
 
-    // 1. Extract TOC from the beginning
+    // Flatten text first (Stream-based approach)
+    const flattenedText = this.parsingService.flattenText(data.text);
+
+    // 1. Extract TOC from the flattened stream
     const { entries: tocEntries, bodyStartIndex } =
-      this.parsingService.extractTableOfContents(data.text, chapterNumber);
+      this.parsingService.extractTableOfContents(flattenedText, chapterNumber);
 
     this.logger.log(
-      `Extracted TOC with ${tocEntries.length} sections. Body starts at line ${bodyStartIndex}.`
+      `Extracted TOC with ${tocEntries.length} sections. Body starts at index ${bodyStartIndex}.`
     );
 
     if (tocEntries.length === 0) {
@@ -41,9 +44,8 @@ export class HealthCodeIngestionService {
     }
 
     // 2. Strict split using TOC entries
-    // We pass the RAW text (or handled inside)
     const validSections = this.parsingService.splitFullTextByTOC(
-      data.text,
+      flattenedText,
       tocEntries
     );
 

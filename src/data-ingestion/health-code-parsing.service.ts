@@ -27,76 +27,92 @@ export class HealthCodeParsingService {
    * Extracts the Table of Contents from the beginning of the text.
    * Assumes the TOC starts with the first §{code} and ends when that same code repeats in the body.
    */
+  /**
+   * Extracts the Table of Contents by scanning the flattened text stream.
+   * Looks for the pattern: §{Code} {Title}.
+   * Stops when the first Code repeats (indicating start of body).
+   */
   extractTableOfContents(
-    text: string,
+    flatText: string,
     chapterNumber: string
   ): { entries: TocEntry[]; bodyStartIndex: number } {
     const entries: TocEntry[] = [];
-    const lines = text.split("\n");
 
-    const codeRegex = new RegExp(`^§\\s*(${chapterNumber}\\.\\d+)`);
+    // Regex to find potential section headers: §81.01 Title.
+    // We assume the title ends at the first dot.
+    // We use a global regex to iterate through the string.
+    const headerRegex = new RegExp(
+      `§\\s*(${chapterNumber}\\.\\d+)\\s+([^§]*?)\\.`,
+      "g"
+    );
 
     let firstCode: string | null = null;
-    let bodyStartIndex = -1;
+    let match: RegExpExecArray | null;
 
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i].trim();
-      if (!line) continue;
+    // We scan the text linearly
+    while ((match = headerRegex.exec(flatText)) !== null) {
+      const code = match[1];
+      const rawTitle = match[2];
+      const fullMatchIndex = match.index;
 
-      const match = line.match(codeRegex);
-      if (match) {
-        const code = match[1];
-
-        // If we see the first code AGAIN, we have hit the body content
-        if (firstCode && code === firstCode) {
-          bodyStartIndex = i;
-          break;
-        }
-
-        if (!firstCode) {
-          firstCode = code;
-        }
-
-        let title = line.substring(match[0].length).trim();
-
-        entries.push({ code, title });
+      // If we see the first code again, we've hit the body
+      if (firstCode && code === firstCode) {
+        // We found the start of the body content
+        return { entries, bodyStartIndex: fullMatchIndex };
       }
+
+      if (!firstCode) {
+        firstCode = code;
+      }
+
+      // Sanitize title: remove extra spaces
+      const title = rawTitle.replace(/\s+/g, " ").trim();
+
+      entries.push({ code, title });
     }
 
-    return { entries, bodyStartIndex };
+    // Fallback if no repeat found (unlikely in this document structure)
+    return { entries, bodyStartIndex: -1 };
   }
 
   /**
    * Splits the full text using the TOC entries as strict delimiters.
    */
-  splitFullTextByTOC(text: string, toc: TocEntry[]): TocEntry[] {
+  /**
+   * Splits the full text using strict delimiters found in TOC.
+   * Delimiter: "§{code} {title}."
+   */
+  splitFullTextByTOC(flatText: string, toc: TocEntry[]): TocEntry[] {
     const results: TocEntry[] = [];
-    const flatText = this.flattenText(text);
 
     for (let i = 0; i < toc.length; i++) {
       const current = toc[i];
       const next = toc[i + 1];
 
-      // We search for "§{code} {title}"
-      const startMarker = `§${current.code} ${current.title}`;
+      // strict start marker: exactly "§81.xx Title."
+      // We assume one space between code and title for robustness, but text is flattened.
+      const startMarker = `§${current.code} ${current.title}.`;
+      // Escape for regex
       const escapedStart = this.escapeRegex(startMarker).replace(
         /\\ /g,
         "\\s*"
       );
       const startRegex = new RegExp(escapedStart, "i");
 
-      const match = flatText.match(startRegex);
+      const startMatch = flatText.match(startRegex);
 
-      if (!match) {
-        console.warn(`Could not find section body for ${current.code}`);
+      if (!startMatch) {
+        console.warn(
+          `Could not find start for ${current.code}: "${startMarker}"`
+        );
         continue;
       }
 
-      const startIndex = match.index! + match[0].length;
+      const startIndex = startMatch.index! + startMatch[0].length;
       let endIndex = flatText.length;
 
       if (next) {
-        const endMarker = `§${next.code} ${next.title}`;
+        const endMarker = `§${next.code} ${next.title}.`;
         const escapedEnd = this.escapeRegex(endMarker).replace(/\\ /g, "\\s*");
         const endRegex = new RegExp(escapedEnd, "i");
         const endMatch = flatText.match(endRegex);
