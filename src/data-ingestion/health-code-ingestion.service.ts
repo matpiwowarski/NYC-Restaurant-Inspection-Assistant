@@ -31,7 +31,7 @@ export class HealthCodeIngestionService {
       `Detected Document Context: ARTICLE ${articleNumber === "\\d+" ? "(Unknown)" : articleNumber}`
     );
 
-    // 2. Flatten Text Strategy (User Request)
+    // 2. Flatten Text Strategy
     // Remove all newlines and extra spaces to treat the document as a continuous stream.
     const flattenedText = data.text.replace(/\s+/g, " ").trim();
 
