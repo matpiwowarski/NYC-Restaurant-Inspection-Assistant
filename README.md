@@ -114,18 +114,6 @@ Before analyzing violations, you must populate the database with the Health Code
 3.  **Verify Data**
     You can use [MongoDB Compass](https://www.mongodb.com/products/tools/compass) to connect to `mongodb://localhost:27017/nyc_inspector` and check that the `HealthCode` and `Violation` collections are populated.
 
-## Running the Application
-
-Once data is loaded, you can run the main application.
-
-```bash
-# development mode
-pnpm run start
-
-# watch mode
-pnpm run start:dev
-```
-
 ## Project Structure
 
 - `src/data-ingestion/`: Core logic for parsing and loading data.
