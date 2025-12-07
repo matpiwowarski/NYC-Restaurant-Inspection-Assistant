@@ -17,10 +17,20 @@ The database is designed to support the core analysis logic immediately. By isol
 **Semantic Search**:
 I chose this over simple text search because of the vocabulary mismatch. Inspectors use informal descriptions (e.g. "mice present") that may not overlap with the formal legal text (e.g. "conditions conducive to pests"). Semantic search captures the meaning rather than just matching characters.
 
+**MongoDB**:
+Selected for its flexibility in handling the varied and sometimes inconsistent structure of the PDF content (nested sections, chunks) and its native support for Vector Search (Atlas), simplifying the stack.
+
 My focus was on solving the complex data engineering challenges:
 
 - **Noise Reduction**: Distilled a massive inspection CSV file down to just ~231 unique, meaningful violation descriptions.
 - **Resilient Parsing**: Built a custom parser for the `Health Code` PDF that handles nested legal structures, inconsistent formatting, human errors, and "floating" headers to ensure clean, semantic chunks for embedding.
+
+### Evaluation Strategy
+
+To ensure data integrity and parsing accuracy, I utilized **MongoDB Compass**:
+
+- **Visual Inspection**: Manually compared generated database records against the original PDF text and CSV rows to verify content fidelity.
+- **Aggregation Analysis**: Used filtering and aggregation queries to validate extraction counts and detect anomalies in the parsed data.
 
 ## Roadmap & Status
 
