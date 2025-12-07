@@ -115,7 +115,8 @@ pnpm run start:dev
 ## Project Structure
 
 - `src/data-ingestion/`: Core logic for parsing and loading data.
-  - `health-code-ingestion.service.ts`: Handles PDF parsing and embedding generation.
+  - `health-code-ingestion.service.ts`: Handles PDF parsing orchestration and embedding generation.
+  - `health-code-parsing.service.ts`: Specialized logic for parsing Health Code text structure.
   - `violation-ingestion.service.ts`: Handles CSV processing for inspection violations.
   - `feature-extraction.service.ts`: Utility for generating text embeddings (using Transformers.js).
 - `src/command.ts`: Entry point for CLI commands (like `load-data`).
