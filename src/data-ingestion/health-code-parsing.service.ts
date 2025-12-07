@@ -81,14 +81,9 @@ export class HealthCodeParsingService {
       if (nextMatch) {
         endIndex = nextMatch.index;
       }
-    } else {
-      // Last section? Fallback to searching for ANY next section-like pattern might be risky if we want to include everything?
-      // Or if there is an extraction of Article 81, maybe stop at "ARTICLE"?
-      // For now, let's keep "to end of text" as per previous behavior for the last item,
-      // or re-evaluate if we want `§\d` fallback.
-      // User request only mentioned "until next code starts", implying strictness.
-      // If no next code, we go to end.
     }
+
+    // No nextCode means the last section so endIndex remains fullText.length
 
     let content = fullText.slice(startIndex, endIndex);
 
