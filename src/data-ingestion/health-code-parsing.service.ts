@@ -112,7 +112,6 @@ export class HealthCodeParsingService {
   }
 
   splitIntoSentences(text: string): string[] {
-    // Simple sentence splitting by '.', '?', '!' followed by space or end of string.
     // Using Intl.Segmenter for better accuracy
     if (typeof Intl !== "undefined" && Intl.Segmenter) {
       const segmenter = new Intl.Segmenter("en", { granularity: "sentence" });
