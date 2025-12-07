@@ -1,4 +1,5 @@
 import { Command, CommandRunner } from "nest-commander";
+import { Logger } from "@nestjs/common";
 import { HealthCodeIngestionService } from "./health-code-ingestion.service";
 import { ViolationIngestionService } from "./violation-ingestion.service";
 import * as path from "path";
@@ -8,6 +9,8 @@ import * as path from "path";
   description: "Ingest data from PDF and CSV files into MongoDB",
 })
 export class DataIngestionCommand extends CommandRunner {
+  private readonly logger = new Logger(DataIngestionCommand.name);
+
   constructor(
     private readonly healthCodeIngestionService: HealthCodeIngestionService,
     private readonly violationIngestionService: ViolationIngestionService
@@ -16,32 +19,34 @@ export class DataIngestionCommand extends CommandRunner {
   }
 
   async run(passedParam: string[], options?: any): Promise<void> {
-    console.log("Data Ingestion Command initiated...");
+    this.logger.log("Data Ingestion Command initiated...");
 
     // Default paths
     const dataDir = path.join(process.cwd(), "data");
     const pdfPath = path.join(dataDir, "health_code.pdf");
     const csvPath = path.join(dataDir, "inspections.csv");
 
-    console.log("Step 1/2: Ingesting Health Code...");
+    this.logger.log("Step 1/2: Ingesting Health Code...");
     try {
       await this.healthCodeIngestionService.ingestHealthCode(pdfPath);
-      console.log("✅ Health Code ingestion finished.");
+      this.logger.log("✅ Health Code ingestion finished.");
     } catch (e) {
-      console.error(
-        "❌ Failed to ingest health code (check if files exist via setup instructions):",
-        e.message
+      this.logger.error(
+        "❌ Failed to ingest health code (check if files exist via setup instructions): " +
+          (e as Error).message
       );
     }
 
-    console.log("Step 2/2: Ingesting Inspections...");
+    this.logger.log("Step 2/2: Ingesting Inspections...");
     try {
       await this.violationIngestionService.ingestInspections(csvPath);
-      console.log("✅ Inspections ingestion finished.");
+      this.logger.log("✅ Inspections ingestion finished.");
     } catch (e) {
-      console.error("❌ Failed to ingest inspections:", e.message);
+      this.logger.error(
+        "❌ Failed to ingest inspections: " + (e as Error).message
+      );
     }
 
-    console.log("🎉 Seeding process complete.");
+    this.logger.log("🎉 Seeding process complete.");
   }
 }
