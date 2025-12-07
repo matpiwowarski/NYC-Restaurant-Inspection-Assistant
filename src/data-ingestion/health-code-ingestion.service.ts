@@ -42,7 +42,7 @@ export class HealthCodeIngestionService {
       `Found ${sections.length} sections for Article ${articleCode}.`
     );
 
-    // Phase 1: Remove Table of Contents (first occurrences of headers)
+    // Remove Table of Contents (first occurrences of headers)
     for (const section of sections) {
       if (section.rawMatch) {
         fullText = this.parsingService.removeSectionHeader(
@@ -52,7 +52,7 @@ export class HealthCodeIngestionService {
       }
     }
 
-    // Phase 2: Extract content destructively
+    // Extract content destructively
     for (let i = 0; i < sections.length; i++) {
       const section = sections[i];
       const nextSection = sections[i + 1];
