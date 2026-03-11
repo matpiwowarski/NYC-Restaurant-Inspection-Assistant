@@ -1,5 +1,7 @@
 # Challenge B: NYC Restaurant Inspection Assistant
 
+[Coding Challenge](Coding%20Challenge%20-%20Candidate%20Version.pdf)
+
 ## Problem & Approach
 
 ### Why this scope?
